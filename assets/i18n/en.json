@@ -102,7 +102,17 @@
     },
     "complete": {
         "section": "Complete",
-        "completionMessage": "is ready to go!"
+        "completionMessage": "is ready to go!",
+        "welcomeTitle": "Welcome to %s",
+        "setupComplete": "Setup Complete",
+        "readyToUse": "Your printer is ready to use.",
+        "beforeFirstPrintTitle": "Before Your First Print",
+        "beforeFirstPrintMessage": "Review the Athena II User Guide and safety information.",
+        "guidesSupportTitle": "Guides & Support",
+        "guidesSupportMessage": "Setup guides, troubleshooting, and support are available through the Concepts 3D Help Center.",
+        "communityTitle": "Community",
+        "communityMessage": "Join the Concepts 3D community for printing tips, updates, and help from other Athena owners.",
+        "finishSetup": "Finish Setup"
     },
     "home": {
         "powerOptions": "Power Options",

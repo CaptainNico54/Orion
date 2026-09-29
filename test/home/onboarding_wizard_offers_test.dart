@@ -18,7 +18,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/json_decode_strategy.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:orion/backend_service/backend_service.dart';
@@ -27,6 +29,7 @@ import 'package:orion/backend_service/providers/manual_provider.dart';
 import 'package:orion/backend_service/providers/resins_provider.dart';
 import 'package:orion/backend_service/providers/status_provider.dart';
 import 'package:orion/glasser/glasser.dart';
+import 'package:orion/home/onboarding/pages.dart';
 import 'package:orion/home/onboarding/welcome_bubbles.dart';
 import 'package:orion/home/onboarding_screen.dart';
 import 'package:orion/materials/calibration_context_provider.dart';
@@ -101,6 +104,132 @@ void main() {
     await pumpFor(tester);
   }
 
+  Future<void> pumpCompletionPage(
+    WidgetTester tester, {
+    required Locale locale,
+    required Size viewport,
+    required VoidCallback onFinish,
+  }) async {
+    tester.view.physicalSize = viewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final delegate = FlutterI18nDelegate(
+      translationLoader: FileTranslationLoader(
+        useCountryCode: false,
+        fallbackFile: 'en',
+        basePath: 'assets/i18n',
+        decodeStrategies: [JsonDecodeStrategy()],
+      ),
+    );
+    await delegate.load(locale);
+
+    final theme = ThemeProvider();
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ThemeProvider>.value(
+        value: theme,
+        child: MaterialApp(
+          locale: locale,
+          localizationsDelegates: [
+            delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en'), Locale('de')],
+          theme: theme.lightTheme,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: OnboardingPages.buildCompletePage(
+                context,
+                const AlwaysStoppedAnimation(Offset.zero),
+                'Athena2-16K',
+                onFinish,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('completion page uses English fallback for missing German keys',
+      (WidgetTester tester) async {
+    var finished = false;
+    await pumpCompletionPage(
+      tester,
+      locale: const Locale('de'),
+      viewport: const Size(1280, 800),
+      onFinish: () => finished = true,
+    );
+
+    String t(String key) => FlutterI18n.translate(
+          tester.element(find.byType(Scaffold)),
+          key,
+        );
+
+    expect(find.text('Welcome to Athena2-16K'), findsOneWidget);
+    expect(find.text('Setup Complete'), findsOneWidget);
+    expect(find.text('Your printer is ready to use.'), findsOneWidget);
+    expect(find.byType(GlassCard), findsOneWidget);
+    expect(find.text('Before Your First Print'), findsOneWidget);
+    expect(find.text('Review the Athena II User Guide and safety information.'),
+        findsOneWidget);
+    expect(find.text('Guides & Support'), findsOneWidget);
+    expect(
+      find.text(
+        'Setup guides, troubleshooting, and support are available through the Concepts 3D Help Center.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Community'), findsOneWidget);
+    expect(
+      find.text(
+        'Join the Concepts 3D community for printing tips, updates, and help from other Athena owners.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byIcon(PhosphorIcons.checkCircle()), findsOneWidget);
+
+    final finishButton =
+        find.widgetWithText(GlassButton, t('complete.finishSetup'));
+    expect(finishButton, findsOneWidget);
+    await tester.tap(finishButton);
+    expect(finished, isTrue);
+  });
+
+  testWidgets('completion page scrolls and finishes on a small viewport',
+      (WidgetTester tester) async {
+    var finished = false;
+    await pumpCompletionPage(
+      tester,
+      locale: const Locale('en'),
+      viewport: const Size(800, 480),
+      onFinish: () => finished = true,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    final finishButton = find.widgetWithText(
+      GlassButton,
+      FlutterI18n.translate(
+        tester.element(find.byType(Scaffold)),
+        'complete.finishSetup',
+      ),
+    );
+    expect(tester.getRect(finishButton).bottom, greaterThan(480));
+    await tester.ensureVisible(finishButton);
+    expect(tester.takeException(), isNull);
+    final buttonRect = tester.getRect(finishButton);
+    expect(buttonRect.top, greaterThanOrEqualTo(0));
+    expect(buttonRect.bottom, lessThanOrEqualTo(480));
+
+    await tester.tap(finishButton);
+    expect(finished, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   /// Runs the welcome hand-off and then follows whatever each step offers until
   /// the leveling step is on screen.
   Future<void> walkToLevelingStep(WidgetTester tester) async {
@@ -113,7 +242,9 @@ void main() {
 
     for (var i = 0; i < 14; i++) {
       // The step's title is on the app bar whichever body it shows.
-      if (find.text(t('setup.verifyLevelingTitle')).evaluate().isNotEmpty) break;
+      if (find.text(t('setup.verifyLevelingTitle')).evaluate().isNotEmpty) {
+        break;
+      }
       final hasNext = find.text(t('common.next')).evaluate().isNotEmpty;
       final hasSkip = find.text(t('common.skip')).evaluate().isNotEmpty;
       // The first three steps hide their floating button, so drive them by the
@@ -215,8 +346,25 @@ void main() {
     // Its decline -> the completion step.
     await tester.tap(find.widgetWithText(GlassButton, t('common.decline')));
     await pumpFor(tester, 2500);
-    expect(find.textContaining(t('complete.completionMessage')), findsOneWidget);
-    expect(find.text(t('common.completeSetup')), findsOneWidget);
+    final modelName = OrionConfig().getMachineModelName();
+    expect(
+      find.text(t('complete.welcomeTitle').replaceFirst('%s', modelName)),
+      findsOneWidget,
+    );
+    expect(find.text(t('complete.setupComplete')), findsOneWidget);
+    expect(find.text(t('complete.readyToUse')), findsOneWidget);
+    expect(find.text(t('complete.beforeFirstPrintTitle')), findsOneWidget);
+    expect(find.text(t('complete.beforeFirstPrintMessage')), findsOneWidget);
+    expect(find.text(t('complete.guidesSupportTitle')), findsOneWidget);
+    expect(find.text(t('complete.guidesSupportMessage')), findsOneWidget);
+    expect(find.text(t('complete.communityTitle')), findsOneWidget);
+    expect(find.text(t('complete.communityMessage')), findsOneWidget);
+    expect(find.byIcon(PhosphorIcons.checkCircle()), findsOneWidget);
+    expect(find.text(t('common.completeSetup')), findsNothing);
+    expect(
+      find.widgetWithText(GlassButton, t('complete.finishSetup')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a leveled printer is offered the re-check',
@@ -266,7 +414,11 @@ void main() {
     await pumpFor(tester, 3000);
 
     // Closing it carries onboarding on to the completion step.
-    expect(find.textContaining(t('complete.completionMessage')), findsOneWidget);
+    final modelName = OrionConfig().getMachineModelName();
+    expect(
+      find.text(t('complete.welcomeTitle').replaceFirst('%s', modelName)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a discarded calibration puts the setup back on that step',
@@ -286,7 +438,11 @@ void main() {
     // ...and on to the end, as the flow does while the print is evaluated.
     await tester.tap(find.widgetWithText(GlassButton, t('common.decline')));
     await pumpFor(tester, 2500);
-    expect(find.textContaining(t('complete.completionMessage')), findsOneWidget);
+    final modelName = OrionConfig().getMachineModelName();
+    expect(
+      find.text(t('complete.welcomeTitle').replaceFirst('%s', modelName)),
+      findsOneWidget,
+    );
 
     // Discarding that run belongs on the calibration step, not the end of
     // setup: the operator asked to start over.
@@ -298,6 +454,6 @@ void main() {
 
     expect(find.text(t('setup.calibrationIntro')), findsOneWidget);
     expect(find.text(t('calibration.start')), findsOneWidget);
-    expect(find.textContaining(t('complete.completionMessage')), findsNothing);
+    expect(find.text(t('complete.setupComplete')), findsNothing);
   });
 }

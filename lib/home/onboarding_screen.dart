@@ -543,7 +543,11 @@ class OnboardingScreenState extends State<OnboardingScreen>
         );
       case 9:
         return OnboardingPages.buildCompletePage(
-            context, _completeAnimation, _printerName);
+          context,
+          _completeAnimation,
+          config.getMachineModelName(),
+          _completeSetup,
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -645,6 +649,8 @@ class OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildFloatingActionButton(BuildContext context) {
+    if (_currentPage == 9) return const SizedBox.shrink();
+
     final bool hideBackButton = _currentPage == 1;
     final bool isTimezonePageWithNoData = _currentPage == 3 &&
         countryData[_selectedCountry]?['timezones'] == null;

@@ -641,25 +641,147 @@ class OnboardingPages {
   static Widget buildCompletePage(
     BuildContext context,
     Animation<Offset> completeAnimation,
-    String printerName,
+    String machineModel,
+    VoidCallback onFinish,
   ) {
+    final theme = Theme.of(context);
+
     return GlassApp(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SlideTransition(
-              position: completeAnimation,
-              child: Text(
-                '$printerName ${FlutterI18n.translate(context, 'complete.completionMessage')}',
-                style: const TextStyle(
-                    fontSize: 30, fontWeight: FontWeight.normal),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  (constraints.maxHeight - 48).clamp(0.0, double.infinity),
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SlideTransition(
+                      position: completeAnimation,
+                      child: Column(
+                        children: [
+                          Icon(
+                            PhosphorIcons.checkCircle(),
+                            size: 68,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            FlutterI18n.translate(
+                              context,
+                              'complete.welcomeTitle',
+                            ).replaceFirst('%s', machineModel),
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      FlutterI18n.translate(context, 'complete.setupComplete'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      FlutterI18n.translate(context, 'complete.readyToUse'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 28),
+                    GlassCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildCompletionGuidance(
+                              context,
+                              'complete.beforeFirstPrintTitle',
+                              'complete.beforeFirstPrintMessage',
+                            ),
+                            const SizedBox(height: 20),
+                            _buildCompletionGuidance(
+                              context,
+                              'complete.guidesSupportTitle',
+                              'complete.guidesSupportMessage',
+                            ),
+                            const SizedBox(height: 20),
+                            _buildCompletionGuidance(
+                              context,
+                              'complete.communityTitle',
+                              'complete.communityMessage',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Center(
+                      child: SizedBox(
+                        width: 320,
+                        child: GlassButton(
+                          tint: GlassButtonTint.positive,
+                          onPressed: onFinish,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 64),
+                          ),
+                          child: Text(
+                            FlutterI18n.translate(
+                              context,
+                              'complete.finishSetup',
+                            ),
+                            style: const TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: kToolbarHeight),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  static Widget _buildCompletionGuidance(
+    BuildContext context,
+    String titleKey,
+    String messageKey,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          FlutterI18n.translate(context, titleKey),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          FlutterI18n.translate(context, messageKey),
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
     );
   }
 
