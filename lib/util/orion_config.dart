@@ -239,7 +239,6 @@ class OrionConfig {
     // Fallback to current working directory if nothing found
     try {
       _configPath = Directory.current.path;
-      _configPath = Directory.current.path;
       _cachedConfigPath = _configPath;
       _logger.fine(
           'OrionConfig: no config found; falling back to CWD=$_configPath');
